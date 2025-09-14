@@ -16,7 +16,9 @@ reasoning_llm = ChatOllama(model="deepseek-r1:1.5b")
 # Nós
 
 def build_first_queries(state: ReportState):
+    user_input = state.user_input
 
+    prompt = build_queries.format(user_input=user_input)
 
     return {""}
 
