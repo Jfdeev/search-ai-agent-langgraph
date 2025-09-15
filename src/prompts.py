@@ -49,4 +49,6 @@ Here's the web search results:
 
 You must add reference citacions (with the number of the citation, example: [1]) for the
 articles you used in each paragraph of your answer.
+
+Your final answer must be in Brazilian Portuguese.
 """
