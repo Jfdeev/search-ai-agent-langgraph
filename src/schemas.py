@@ -12,5 +12,5 @@ class ReportState(BaseModel):
     user_input: str = None
     final_response: str = None
     queries: List[str] = []
-    query_results: Annotated[List[QueryResult], operator.add]
+    query_results: Annotated[List[QueryResult], operator.add] = []
 
