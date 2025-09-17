@@ -39,8 +39,6 @@ st.title("🔍 AI Research Agent")
 # Criar tabs para diferentes funcionalidades
 tab1, tab2, tab3 = st.tabs(["🔍 Pesquisa", "🧠 Mapa de Conhecimento", "📊 Estatísticas"])
 
-with tab1:
-    st.markdown("---")
 
 with tab1:
     st.markdown("---")
