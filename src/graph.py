@@ -168,6 +168,3 @@ graph = builder.compile()
 
 
 
-if __name__ == "__main__":
-    from IPython.display import display, Image
-    display(Image(graph.get_graph().draw_mermaid_png()))
