@@ -1,4 +1,3 @@
-from typing import List
 from pydantic import BaseModel, Field
 from langchain_ollama import ChatOllama
 from langgraph.graph import START, END, StateGraph
@@ -7,20 +6,12 @@ from tavily import TavilyClient
 
 from schemas import *
 from prompts import *
-from knowledge_graph import KnowledgeGraph
 
 from dotenv import load_dotenv
-
-from src.schemas import QueryResult, ReportState
 load_dotenv()
 
 llm = ChatOllama(model="gemma3:1b")
 reasoning_llm = ChatOllama(model="gemma2:2b")
-
-# Instância global do grafo de conhecimento
-knowledge_graph = KnowledgeGraph()
-# Carregar grafo existente se houver
-knowledge_graph.load_from_file("knowledge_graph.json")
 
 
 # Nós
@@ -51,8 +42,7 @@ def single_search(query: str):
             return {"query_result": QueryResult(
                 title="Nenhum resultado encontrado",
                 url="",
-                resume="Não foi possível encontrar informações relevantes para esta consulta.",
-                concepts=[]
+                resume="Não foi possível encontrar informações relevantes para esta consulta."
             )}
         
         url = results["results"][0]["url"]
@@ -63,29 +53,16 @@ def single_search(query: str):
             prompt = resume_search.format(user_input=query, search_results=raw_content)
             llm_result = llm.invoke(prompt)
 
-            # Extrair conceitos do conteúdo e do resumo
-            content_text = raw_content + " " + llm_result.content
-            extracted_concepts = knowledge_graph.extract_concepts(content_text, query)
-            
-            # Adicionar conexões no grafo de conhecimento
-            if extracted_concepts:
-                knowledge_graph.add_concept_connections(extracted_concepts, f"Query: {query}", 1.0)
-
             query_result = QueryResult(
                 title=results["results"][0]["title"],
                 url=url,
-                resume=llm_result.content,
-                concepts=extracted_concepts
+                resume=llm_result.content
             )
         else:
-            # Extrair conceitos apenas do título se não há conteúdo
-            extracted_concepts = knowledge_graph.extract_concepts(results["results"][0]["title"], query)
-            
             query_result = QueryResult(
                 title=results["results"][0]["title"],
                 url=url,
-                resume="Conteúdo não disponível para extração.",
-                concepts=extracted_concepts
+                resume="Conteúdo não disponível para extração."
             )
             
         return {"query_result": query_result}
@@ -94,16 +71,13 @@ def single_search(query: str):
         return {"query_result": QueryResult(
             title="Erro na pesquisa",
             url="",
-            resume=f"Erro ao processar a consulta: {str(e)}",
-            concepts=[]
+            resume=f"Erro ao processar a consulta: {str(e)}"
         )}
 
 
 def final_writer(state: ReportState):
     search_results = ""
     references = ""
-    all_concepts = []
-    
     for i, result in enumerate(state.query_results):
         search_results += f"[{i+1}]\n\n"
         search_results += f"Title: {result.title}\n"
@@ -112,33 +86,13 @@ def final_writer(state: ReportState):
         search_results += f"---------------------------------------\n\n"
 
         references += f"[{i+1}] - {result.title}({result.url})\n"
-        
-        # Coletar todos os conceitos
-        if hasattr(result, 'concepts') and result.concepts:
-            all_concepts.extend(result.concepts)
 
     prompt = build_final_response.format(user_input=state.user_input, search_results=search_results)
 
     llm_result = reasoning_llm.invoke(prompt)
     final_response = llm_result.content + "\n\nReferences:\n" + references
-    
-    # Salvar o grafo de conhecimento
-    knowledge_graph.save_to_file("knowledge_graph.json")
-    
-    # Gerar sugestões de tópicos relacionados
-    suggestions = knowledge_graph.suggest_next_research(all_concepts, limit=5)
-    
-    # Preparar dados do grafo para o frontend
-    graph_stats = knowledge_graph.get_graph_stats()
-    
-    return {
-        "final_response": final_response,
-        "knowledge_graph_data": {
-            "concepts": all_concepts,
-            "suggestions": suggestions,
-            "stats": graph_stats
-        }
-    }
+
+    return {"final_response": final_response}
 
 
 def run_research(user_input: str):
@@ -168,3 +122,6 @@ graph = builder.compile()
 
 
 
+if __name__ == "__main__":
+    from IPython.display import display, Image
+    display(Image(graph.get_graph().draw_mermaid_png()))
